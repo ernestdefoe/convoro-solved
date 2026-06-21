@@ -56,7 +56,7 @@ class Extension extends ServiceProvider
         });
 
         Route::middleware(['web', 'auth', 'admin'])->group(function () {
-            Route::get('/admin/ext/solved', fn () => response(self::adminPage()));
+            Route::get('/admin/ext/solved', fn () => self::adminPage());
             Route::post('/admin/ext/solved', function (Request $request) {
                 $ids = collect($request->input('qa', []))->map(fn ($v) => (int) $v)->filter()->all();
                 DB::table('categories')->update(['is_qa' => false]);
@@ -91,64 +91,58 @@ class Extension extends ServiceProvider
             || (bool) $user->hasPermission('topic.lock');
     }
 
-    private static function adminPage(): string
+    private static function adminPage(): \Inertia\Response
     {
-        $csrf = csrf_token();
-        $theme = \App\Support\Theme::css();
-        $font = \App\Support\Theme::fontStack((string) Settings::get('theme.font', 'Inter'));
-        $mode = htmlspecialchars((string) Settings::get('theme.mode', 'light'), ENT_QUOTES);
-        $name = htmlspecialchars((string) Settings::get('site.name', 'Convoro'), ENT_QUOTES);
         $cats = DB::table('categories')->orderBy('position')->orderBy('name')->get(['id', 'name', 'is_qa']);
         $rows = $cats->map(function ($c) {
             $checked = $c->is_qa ? ' checked' : '';
 
-            return '<label class="row"><span class="nm">'.htmlspecialchars($c->name).'</span>'
+            return '<label class="aa-row"><span class="aa-nm">'.htmlspecialchars($c->name).'</span>'
                 .'<input type="checkbox" data-id="'.$c->id.'"'.$checked.'></label>';
-        })->implode('') ?: '<p class="muted">No categories yet — create one in Admin → Categories &amp; Tags first.</p>';
+        })->implode('') ?: '<p class="aa-muted">No categories yet — create one in Admin → Categories &amp; Tags first.</p>';
 
-        return <<<HTML
-<!DOCTYPE html><html lang="en" data-theme="{$mode}"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="csrf-token" content="{$csrf}"><title>Accepted Answers · {$name}</title>
-<style>{$theme}
-:root,html[data-theme="light"]{--c-bg:243 244 249;--c-surface:255 255 255;--c-surface-2:248 249 252;--c-border:230 232 240;--c-text:27 32 48;--c-text-2:74 81 104;--c-muted:138 144 166}
-html[data-theme="dark"]{--c-bg:16 18 30;--c-surface:22 25 41;--c-surface-2:28 32 52;--c-border:42 47 70;--c-text:233 235 243;--c-text-2:174 180 208;--c-muted:120 127 152}
-*{box-sizing:border-box}body{margin:0;font-family:{$font};background:rgb(var(--c-bg));color:rgb(var(--c-text))}
-a{color:rgb(var(--c-primary));text-decoration:none}a:hover{text-decoration:underline}
-.bar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid rgb(var(--c-border));background:rgb(var(--c-surface))}
-.bar .dot{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgb(var(--c-primary));color:#fff;font-weight:800}
-.bar b{font-weight:800}.bar .sp{flex:1}
-.wrap{max-width:640px;margin:0 auto;padding:32px 24px}
-h1{font-size:22px;margin:0 0 4px}.sub{color:rgb(var(--c-muted));margin:0 0 22px;font-size:14px}
-.card{background:rgb(var(--c-surface));border:1px solid rgb(var(--c-border));border-radius:var(--c-radius,12px);padding:2px 18px}
-.row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgb(var(--c-border))}.row:last-child{border-bottom:0}
-.nm{flex:1;font-weight:600}.muted{color:rgb(var(--c-muted));padding:18px 0;margin:0}
-input[type=checkbox]{width:20px;height:20px;accent-color:rgb(var(--c-primary))}
-.actions{display:flex;align-items:center;gap:14px;margin-top:18px}
-.btn{border:0;border-radius:var(--c-radius-btn,9px);padding:10px 20px;font:inherit;font-weight:700;cursor:pointer;background:rgb(var(--c-primary));color:#fff}
-.btn:disabled{opacity:.6;cursor:default}.msg{color:rgb(var(--c-muted));font-size:14px}
-</style></head><body>
-<div class="bar"><span class="dot">C</span><b>{$name}</b><span class="sp"></span><a href="/admin">← Back to Admin</a></div>
-<div class="wrap">
-<h1>Accepted Answers</h1>
-<p class="sub">Choose which categories work like Q&amp;A. In those, the person who asked — or your staff — can mark a reply as the accepted answer.</p>
-<div class="card" id="cats">{$rows}</div>
-<div class="actions"><button class="btn" id="save">Save</button><span class="msg" id="msg"></span></div>
-</div>
-<script>
-const csrf=document.querySelector('meta[name=csrf-token]').content;
-const btn=document.getElementById('save'), msg=document.getElementById('msg');
-btn.addEventListener('click', async () => {
-  const qa=[...document.querySelectorAll('#cats input[type=checkbox]:checked')].map(i=>i.dataset.id);
-  btn.disabled=true; msg.textContent='Saving…';
-  try {
-    const r=await fetch('/admin/ext/solved',{method:'POST',headers:{'X-CSRF-TOKEN':csrf,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({qa})});
-    msg.textContent = r.ok ? 'Saved ✓' : 'Could not save.';
-  } catch(e){ msg.textContent='Could not save.'; }
-  btn.disabled=false;
-  setTimeout(()=>{ msg.textContent=''; }, 2500);
-});
-</script></body></html>
-HTML;
+        $body = <<<HTML
+        <div class="aa-wrap">
+          <h1 class="aa-h1">Accepted Answers</h1>
+          <p class="aa-sub">Choose which categories work like Q&amp;A. In those, the person who asked — or your staff — can mark a reply as the accepted answer.</p>
+          <div class="aa-card" id="cats">{$rows}</div>
+          <div class="aa-actions"><button class="aa-btn" id="save">Save</button><span class="aa-msg" id="msg"></span></div>
+        </div>
+        HTML;
+
+        $css = <<<'CSS'
+        .aa-wrap{max-width:640px;margin:0 auto;padding:32px 24px}
+        .ext-embed .aa-wrap{padding:0}
+        .aa-h1{font-size:22px;font-weight:800;margin:0 0 4px;color:rgb(var(--c-text))}
+        .aa-sub{color:rgb(var(--c-muted));margin:0 0 22px;font-size:14px}
+        .aa-card{background:rgb(var(--c-surface));border:1px solid rgb(var(--c-border));border-radius:var(--c-radius,12px);padding:2px 18px}
+        .aa-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgb(var(--c-border))}
+        .aa-row:last-child{border-bottom:0}
+        .aa-nm{flex:1;font-weight:600;color:rgb(var(--c-text))}
+        .aa-muted{color:rgb(var(--c-muted));padding:18px 0;margin:0}
+        .aa-card input[type=checkbox]{width:20px;height:20px;accent-color:rgb(var(--c-primary));cursor:pointer}
+        .aa-actions{display:flex;align-items:center;gap:14px;margin-top:18px}
+        .aa-btn{border:0;border-radius:var(--c-radius-btn,9px);padding:10px 20px;font:inherit;font-weight:700;cursor:pointer;background:rgb(var(--c-primary));color:#fff}
+        .aa-btn:hover{background:rgb(var(--c-primary-600,var(--c-primary)))}
+        .aa-btn:disabled{opacity:.6;cursor:default}
+        .aa-msg{color:rgb(var(--c-muted));font-size:14px}
+        CSS;
+
+        $js = <<<'JS'
+        var btn=document.getElementById('save'), msg=document.getElementById('msg');
+        btn.addEventListener('click', async function () {
+          var qa=[].slice.call(document.querySelectorAll('#cats input[type=checkbox]:checked')).map(function(i){return i.dataset.id;});
+          btn.disabled=true; msg.textContent='Saving…';
+          try {
+            var r=await fetch('/admin/ext/solved',{method:'POST',headers:H,body:JSON.stringify({qa:qa})});
+            msg.textContent = r.ok ? 'Saved ✓' : 'Could not save.';
+            if(r.ok && window.parent!==window){try{window.parent.postMessage({type:'convoro:toast',message:'Saved',kind:'success'},location.origin);}catch(e){}}
+          } catch(e){ msg.textContent='Could not save.'; }
+          btn.disabled=false;
+          setTimeout(function(){ msg.textContent=''; }, 2500);
+        });
+        JS;
+
+        return \App\Support\ExtPage::render('Accepted Answers', $body, $css, $js);
     }
 }
